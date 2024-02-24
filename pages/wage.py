@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import yfinance as yf
 from matplotlib import ticker as mtick
 import datetime
 import plotly.express as px
@@ -121,7 +120,7 @@ eci_yoy_fig.add_trace(go.Scatter(x=[eci_yoy.index[-1]], y=[eci_yoy[-1]],
                                  mode='markers', marker_symbol='star', marker_size=11, name='Release: '+f"{updates['Employment Cost Index']:%m/%d/%y}"))
 eci_yoy_fig.update_layout(template='seaborn', 
                     showlegend=True,
-                    title=dict(text='Employment Cost Index YoY', x=0.03, y=0.9, font=dict(size=30)),
+                    title=dict(text='Employment Cost Index YoY', font=dict(size=20)),
                     # title_x=0.1,
                     legend = dict(orientation='h', y=1.0, x=1, xanchor='right', yanchor='bottom'),
                     margin=dict(b=50,l=70,r=70,t=70),
