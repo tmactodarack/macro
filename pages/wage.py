@@ -2,13 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import yfinance as yf
-from matplotlib import pyplot as plt
-plt.style.use('ggplot')
 from matplotlib import ticker as mtick
 import datetime
-import matplotlib_inline
-matplotlib_inline.backend_inline.set_matplotlib_formats('retina') # for better plot quality if we use retina
-
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
