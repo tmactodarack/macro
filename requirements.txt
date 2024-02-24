@@ -50,7 +50,7 @@ six==1.16.0
 smmap==5.0.1
 soupsieve==2.5
 streamlit==1.31.1
-tenacity==8.2.3
+tenacity @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/tenacity_1699483390626/work
 toml==0.10.2
 toolz==0.12.1
 tornado==6.4
