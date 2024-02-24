@@ -25,25 +25,28 @@ tickers = {'ECIWAG': 'Employment Cost Index', # ECIWAG is SA, using NSA for yoy 
            'PCEPILFE': 'Core PCE' # PCEPILFE is SA
            } 
 
-combine = pd.DataFrame()
-updates = pd.Series(dtype='float')
+@ st.cache_data
+def fetchFred(api_key, tickers):
+  combine = pd.DataFrame()
+  updates = pd.Series(dtype='float')
 
-for i in tickers.keys(): 
-    url = f'https://api.stlouisfed.org/fred/series?series_id={i}{api_key}' # get latest release date
-    df = pd.read_xml(url, parse_dates=['last_updated'])
-    updates[tickers[i]] = (df['last_updated'][0])
+  for i in tickers.keys(): 
+      url = f'https://api.stlouisfed.org/fred/series?series_id={i}{api_key}' # get latest release date
+      df = pd.read_xml(url, parse_dates=['last_updated'])
+      updates[tickers[i]] = (df['last_updated'][0])
 
-    url = f'https://api.stlouisfed.org/fred/series/observations?series_id={i}{api_key}' # get data
-    df = pd.read_xml(url, parse_dates=['date'])
-    df.set_index('date', inplace=True)
-    filt = (df['value'] != '.') # some data from fred is in weird . string
-    single = df[filt]['value'].apply(lambda x: float(x)).to_frame(tickers[i]) # excluding . and turn into float
-    combine = pd.concat([combine, single], axis=1)
+      url = f'https://api.stlouisfed.org/fred/series/observations?series_id={i}{api_key}' # get data
+      df = pd.read_xml(url, parse_dates=['date'])
+      df.set_index('date', inplace=True)
+      filt = (df['value'] != '.') # some data from fred is in weird . string
+      single = df[filt]['value'].apply(lambda x: float(x)).to_frame(tickers[i]) # excluding . and turn into float
+      combine = pd.concat([combine, single], axis=1)
 
-combine.index.name = None
-combine = combine.sort_index()
+  combine.index.name = None
+  combine = combine.sort_index()
+  return updates, combine
 ##################################################################################################
-
+updates, combine = fetchFred(api_key, tickers)
 
 ############ Long trend ###############
 longTerm = combine[['Employment Cost Index', 'Average Hourly Earnings', 'Core PCE']].resample('q').mean().dropna().pct_change(4)
@@ -53,10 +56,10 @@ longTerm_fig.add_trace(go.Line(x=longTerm.index, y=longTerm['Average Hourly Earn
 longTerm_fig.add_trace(go.Line(x=longTerm.index, y=longTerm['Core PCE'], name='Core PCE YoY'))
 longTerm_fig.update_layout(template='seaborn', 
                     showlegend=True,
-                    title=dict(text='Long Term Relationship', y=0.9, font=dict(size=30)),
+                    title=dict(text='Long Term Relationship between Wage Inflation and Core Inflation', font=dict(size=20)),
                     # title_x=0.1,
-                    legend = dict(orientation='h'),
-                    margin=dict(b=50,l=70,r=70,t=70),
+                    legend = dict(orientation='h', x=1, y=1, xanchor='right', yanchor='bottom'),
+                    # margin=dict(b=50,l=70,r=70,t=70),
                     xaxis=dict(fixedrange=True),
                     yaxis=dict(tickformat='.1%', fixedrange=True)
                     )
@@ -74,32 +77,43 @@ st.markdown('''
             ''')
 
 ################ ECI QoQ ######################
-start='2022'
-end = datetime.datetime.today() + datetime.timedelta(days=100)
+def eci_qoq_fig(start, end):
+  end = datetime.datetime.today() + datetime.timedelta(days=100)
 
-eci_qoq = combine['Employment Cost Index'].dropna().pct_change().loc[start:end]
-title = 'Employment Cost Index QoQ'
+  eci_qoq = combine['Employment Cost Index'].dropna().pct_change().loc[start:end]
+  title = 'Employment Cost Index QoQ'
 
-fig = go.Figure()
-fig.add_trace(go.Bar(x=eci_qoq.index, y=eci_qoq, name='ECI QoQ'))
-fig.add_trace(go.Scatter(x=[eci_qoq.index[-1]], 
-                         y=[eci_qoq[-1]], 
-                         mode='markers',
-                         marker_symbol='star',
-                         marker_size=11 , 
-                         name='Release: ' + f"{updates['Employment Cost Index']:%m/%d/%y}"))
-# fig.add_annotation(x=test.index[-1], y=test[-1], text='Latest Release')
-fig.update_layout(template='seaborn', 
-                  showlegend=True,
-                  title=dict(text=title, y=0.9, font=dict(size=30)),
-                #   title_x=0.1,
-                  legend = dict(orientation='h'),
-                  margin=dict(b=50,l=70,r=70,t=70),
-                  xaxis=dict(tickvals = eci_qoq.index, ticktext = eci_qoq.index.to_period('q').to_series().astype(str), fixedrange=True), 
-                  yaxis=dict(tickformat='.1%', fixedrange=True)
-                )
-st.plotly_chart(fig, use_container_width=True)
+  fig = go.Figure()
+  fig.add_trace(go.Bar(x=eci_qoq.index, y=eci_qoq, name='ECI QoQ'))
+  fig.add_trace(go.Scatter(x=[eci_qoq.index[-1]], 
+                          y=[eci_qoq[-1]], 
+                          mode='markers',
+                          marker_symbol='star',
+                          marker_size=11 , 
+                          name='Release: ' + f"{updates['Employment Cost Index']:%m/%d/%y}"))
+  # fig.add_annotation(x=test.index[-1], y=test[-1], text='Latest Release')
+  fig.update_layout(template='seaborn', 
+                    showlegend=True,
+                    title=dict(text=title, font=dict(size=20)),
+                  #   title_x=0.1,
+                    legend = dict(orientation='h',x=1, y=1, xanchor='right', yanchor='bottom'),
+                    # margin=dict(b=50,l=70,r=70,t=70),
+                    xaxis=dict(tickvals = eci_qoq.index, ticktext = eci_qoq.index.to_period('q').to_series().astype(str), fixedrange=True), 
+                    yaxis=dict(tickformat='.1%', fixedrange=True)
+                  )
+  return fig
 
+eci_qoq_fig_choose = st.radio('Display Period', ['Past 1 Year', 'Past 2 Years', 'Past 5 Years'], horizontal=True, index=1)
+eci_qoq_fig_end = datetime.datetime.today()
+
+if eci_qoq_fig_choose == 'Past 1 Year':
+   eci_qoq_fig_start = eci_qoq_fig_end - datetime.timedelta(days=365)
+elif eci_qoq_fig_choose == 'Past 2 Years':
+   eci_qoq_fig_start = eci_qoq_fig_end - datetime.timedelta(days=365*2)
+elif eci_qoq_fig_choose == 'Past 5 Years':
+   eci_qoq_fig_start = eci_qoq_fig_end - datetime.timedelta(days=365*5)
+
+st.plotly_chart(eci_qoq_fig(eci_qoq_fig_start, eci_qoq_fig_end), use_container_width=True)
 with st.expander(' :bulb: Tips'):
     st.markdown('''
             We'd like to check whether there is insight or a trend for ECI QoQ based on:  
@@ -121,8 +135,8 @@ eci_yoy_fig.update_layout(template='seaborn',
                     showlegend=True,
                     title=dict(text='Employment Cost Index YoY', font=dict(size=20)),
                     # title_x=0.1,
-                    legend = dict(orientation='h', y=1.0, x=1, xanchor='right', yanchor='bottom'),
-                    margin=dict(b=50,l=70,r=70,t=70),
+                    legend = dict(orientation='h', y=1, x=1, xanchor='right', yanchor='bottom'),
+                    # margin=dict(b=50,l=70,r=70,t=70),
                     xaxis=dict(tickvals = eci_yoy.index, ticktext = eci_yoy.index.to_period('q').to_series().astype(str), fixedrange=True), 
                     yaxis=dict(tickformat='.1%', fixedrange=True)
                     )
@@ -131,8 +145,18 @@ st.markdown('***')
 
 ############### AHE mom ###########################
 start = '2022'
-ahe_mom = combine['Average Hourly Earnings'].pct_change().dropna().loc['2023':'2024']
+ahe_mom = combine['Average Hourly Earnings'].pct_change().dropna().loc[start:'2024']
+
 ahe_mom_fig = go.Figure()
-ahe_mom_fig.add_trace( go.Scatter(x=ahe_mom.index, y=ahe_mom, mode='lines+markers', name='Average Hourly Earnings MoM') )
-ahe_mom_fig.add_trace( go.Scatter(x=[ahe_mom.index[-1]], y=[ahe_mom[-1]], mode='markers', name=f"Release: {updates['Average Hourly Earnings']:%m/%d/%y}") )
+ahe_mom_fig.add_trace( go.Bar(x=ahe_mom.index, y=ahe_mom, name='Average Hourly Earnings MoM') )
+ahe_mom_fig.add_trace( go.Scatter(x=[ahe_mom.index[-1]], y=[ahe_mom[-1]], mode='markers',
+                                  marker_symbol='star', marker_size=11, name=f"Release: {updates['Average Hourly Earnings']:%m/%d/%y}") )
+
+ahe_mom_fig.update_layout(
+    template='seaborn',
+    title=dict(text='Average Hourly Earnings MoM', font=dict(size=20)),
+    legend=dict(orientation='h', x=1, y=1, xanchor='right', yanchor='bottom'),
+    xaxis=dict(fixedrange=True),
+    yaxis=dict(fixedrange=True, tickformat='.1%'),
+)
 st.plotly_chart(ahe_mom_fig, use_container_width=True)
