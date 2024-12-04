@@ -65,3 +65,7 @@ yfinance==0.2.36
 zipp==3.17.0
 zope.interface==6.2
 selenium
+matplotlib
+io
+matplotlib_inline
+datetime
