@@ -64,5 +64,5 @@ wheel==0.41.2
 yfinance==0.2.36
 zipp==3.17.0
 zope.interface==6.2
-selenium
-io
+selenium==4.27.1
+io==0.3
